@@ -104,24 +104,36 @@
 
 
 				helpers.each(dataset.data,function(dataPoint,index){
+
 					//Add a new point for each piece of data, passing any required data to draw.
-					datasetObject.points.push(new this.PointClass({
-						value : dataPoint,
+					var pointObj = {
+						value : (typeof dataPoint === 'object') ? dataPoint.value : dataPoint,
 						label : data.labels[index],
 						datasetLabel: dataset.label,
 						strokeColor : dataset.pointStrokeColor,
 						fillColor : dataset.pointColor,
 						highlightFill : dataset.pointHighlightFill || dataset.pointColor,
 						highlightStroke : dataset.pointHighlightStroke || dataset.pointStrokeColor
-					}));
+					};
+					var point = new this.PointClass(pointObj);
+
+					datasetObject.points.push(point);
+
+					if (typeof dataPoint === 'object') {
+						point.data = dataPoint.data;
+						if (dataPoint.x) {
+							point._isStaticX = true;
+							point.x = dataPoint.x;
+						}
+					}
+
 				},this);
 
 				this.buildScale(data.labels);
 
-
 				this.eachPoints(function(point, index){
 					helpers.extend(point, {
-						x: this.scale.calculateX(index),
+						x: point._isStaticX ? point.x : this.scale.calculateX(index),
 						y: this.scale.endPoint
 					});
 					point.save();
@@ -222,15 +234,28 @@
 			//Map the values array for each of the datasets
 
 			helpers.each(valuesArray,function(value,datasetIndex){
+
 				//Add a new point for each piece of data, passing any required data to draw.
-				this.datasets[datasetIndex].points.push(new this.PointClass({
-					value : value,
+				var pointObj = {
+					value : (typeof value === 'object') ? value.value : value,
 					label : label,
 					x: this.scale.calculateX(this.scale.valuesCount+1),
 					y: this.scale.endPoint,
 					strokeColor : this.datasets[datasetIndex].pointStrokeColor,
 					fillColor : this.datasets[datasetIndex].pointColor
-				}));
+				};
+				if (typeof value === 'object') {
+					point.data = value.data;
+					if (value.x) {
+						point._isStaticX = true;
+						point.x = value.x;
+					}
+				}
+				
+				var point = new this.PointClass(pointObj);
+
+				//Add a new point for each piece of data, passing any required data to draw.
+				this.datasets[datasetIndex].points.push(point);
 			},this);
 
 			this.scale.addXLabel(label);
@@ -271,7 +296,6 @@
 
 			this.scale.draw(easingDecimal);
 
-
 			helpers.each(this.datasets,function(dataset){
 				var pointsWithValues = helpers.where(dataset.points, hasValue);
 
@@ -282,7 +306,7 @@
 					if (point.hasValue()){
 						point.transition({
 							y : this.scale.calculateY(point.value),
-							x : this.scale.calculateX(index)
+							x : point._isStaticX ? point.x : this.scale.calculateX(index)
 						}, easingDecimal);
 					}
 				},this);
@@ -325,6 +349,8 @@
 				ctx.lineWidth = this.options.datasetStrokeWidth;
 				ctx.strokeStyle = dataset.strokeColor;
 				ctx.beginPath();
+				ctx.lineCap = 'round';
+				ctx.lineJoin = 'round';
 
 				helpers.each(pointsWithValues, function(point, index){
 					if (index === 0){
@@ -347,6 +373,14 @@
 							ctx.lineTo(point.x,point.y);
 						}
 					}
+
+					if (point.data && point.data.tooltipText) {
+						ctx.font = "16px 'Source Sans Pro', sans-serif";
+						ctx.textAlign = "center";
+						ctx.fillStyle = "#ffffff";
+	  					ctx.fillText(point.data.tooltipText, point.x + point.data.tooltipOffset.x, point.y + point.data.tooltipOffset.y);
+					}
+
 				}, this);
 
 				ctx.stroke();
