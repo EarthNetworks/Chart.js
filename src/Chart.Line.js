@@ -245,10 +245,10 @@
 					fillColor : this.datasets[datasetIndex].pointColor
 				};
 				if (typeof value === 'object') {
-					point.data = value.data;
+					pointObj.data = value.data;
 					if (value.x) {
-						point._isStaticX = true;
-						point.x = value.x;
+						pointObj._isStaticX = true;
+						pointObj.x = value.x;
 					}
 				}
 				
